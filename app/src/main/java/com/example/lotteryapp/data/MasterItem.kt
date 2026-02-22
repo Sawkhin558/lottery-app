@@ -3,6 +3,7 @@ package com.example.lotteryapp.data
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
+import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "master_items",
@@ -17,6 +18,8 @@ import androidx.room.Index
     indices = [Index("masterId")]
 )
 data class MasterItem(
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
     val masterId: Int,
     val number: String,
     val directAmount: Int,
