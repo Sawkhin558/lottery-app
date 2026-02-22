@@ -16,4 +16,8 @@ interface LotteryItemDao {
     
     @Query("DELETE FROM lottery_items")
     suspend fun deleteAllItems()
+    
+    // Sync version for bridge
+    @Query("SELECT * FROM lottery_items")
+    fun getAllItemsSync(): List<LotteryItem>
 }

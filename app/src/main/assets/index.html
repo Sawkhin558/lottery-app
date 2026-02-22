@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>၃ လုံး ထီ စာရင်းသွင်းခြင်း (v5.4 Pro)</title>
+    <style>
+        :root { --primary: #007bff; --success: #28a745; --danger: #dc3545; --warning: #ffc107; --info: #17a2b8; --light: #f8f9fa; --dark: #343a40; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Pyidaungsu', 'Myanmar Text', Arial, sans-serif; background-color: #f4f7f6; color: #333; padding: 10px; line-height: 1.6; }
+        .container { max-width: 100%; margin: 0 auto; background-color: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); }
+        h1 { text-align: center; color: var(--primary); font-size: 1.5rem; margin-bottom: 15px; }
+        .input-tabs { display: flex; margin-bottom: 15px; border-bottom: 2px solid #ddd; overflow-x: auto; gap: 5px; }
+        .input-tab { padding: 10px 15px; cursor: pointer; border: none; background: #eee; border-radius: 5px 5px 0 0; white-space: nowrap; font-weight: bold; }
+        .input-tab.active { background-color: var(--primary); color: white; }
+        .input-tab-content { display: none; }
+        .input-tab-content.active { display: block; }
+        textarea, input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px; }
+        textarea { height: 120px; font-size: 1.1rem; }
+        button { padding: 10px; border: none; border-radius: 4px; cursor: pointer; color: white; margin-top: 5px; width: 100%; font-weight: bold; }
+        .btn-primary { background: var(--primary); }
+        .btn-success { background: var(--success); }
+        .btn-danger { background: var(--danger); }
+        .btn-warning { background: var(--warning); color: #333; }
+        .btn-info { background: var(--info); }
+        .btn-group { display: flex; gap: 5px; flex-wrap: wrap; }
+        .btn-group button { flex: 1; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.95em; }
+        th, td { border: 1px solid #dee2e6; padding: 8px; text-align: right; }
+        th { background: #e9ecef; text-align: center; }
+        .text-center { text-align: center; }
+        .voucher-card { background: #fff; border: 1px solid #ddd; border-left: 5px solid var(--primary); padding: 10px; margin-bottom: 10px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; }
+        .master-card { border-left-color: var(--warning); background: #fffdf5; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; padding: 20px; border-radius: 8px; width: 95%; max-width: 450px; }
+        pre { background: #f1f1f1; padding: 10px; white-space: pre-wrap; font-size: 0.9em; border: 1px dashed #ccc; }
+        .live-notice { background: #e3f2fd; border: 1px solid #90caf9; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 0.9rem; }
+        .error-alert { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 10px; margin-bottom: 10px; border-radius: 5px; display: none; font-weight: bold; }
+        .total-summary-card { background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; border: 1px solid var(--primary); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎲 ၃ လုံး ထီ စာရင်းသွင်းခြင်း (v5.4)</h1>
+        
+        <div id="liveStatus" class="live-notice">
+            <b>Live စာရင်းချုပ် (မိမိလက်ကျန်):</b><br>
+            ရောင်းရငွေ: <span id="liveSelfTotal">0</span> | ကော်မရှင်: <span id="liveComm">0</span><br>
+            လျော်ကြေး (လစ်မစ်အပြည့်ဖြစ်ပါက): <span id="liveMaxPay">0</span> | <b>အသားတင်: <span id="liveNet">0</span></b>
+        </div>
+
+        <div id="errorNotice" class="error-alert"></div>
+
+        <div class="input-tabs">
+            <div class="input-tab active" onclick="switchTab('entry', this)">စာရင်းသွင်းရန်</div>
+            <div class="input-tab" onclick="switchTab('vouchers', this)">ဘောင်ချာများ</div>
+            <div class="input-tab" onclick="switchTab('master_history', this)">Master ပို့ပြီး</div>
+            <div class="input-tab" onclick="switchTab('report', this)">စာရင်းချုပ်</div>
+            <div class="input-tab" onclick="switchTab('profit', this)">အမြတ်အရှုံး</div>
+            <div class="input-tab" onclick="switchTab('settings', this)">Settings</div>
+        </div>
+
+        <div id="entry-tab" class="input-tab-content active">
+            <textarea id="batchInput" placeholder="123.231=100*100 (သို့) 123=100r50"></textarea>
+            <div class="btn-group">
+                <button class="btn-primary" onclick="processBatchInput()">စာရင်းသွင်းမည်</button>
+                <button class="btn-danger" onclick="clearAll()">အားလုံးဖျက်မည်</button>
+            </div>
+            <table id="lotteryTable">
+                <thead><tr><th>ဂဏန်း</th><th>ဒဲ့</th><th>တွတ်</th><th>စုစုပေါင်း</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div id="vouchers-tab" class="input-tab-content">
+            <div id="voucherSummary" class="total-summary-card"><b>စုစုပေါင်း ဘောင်ချာတန်ဖိုး: <span id="vTotal">0</span> ကျပ်</b></div>
+            <div id="voucherListContainer"></div>
+        </div>
+        
+        <div id="master_history-tab" class="input-tab-content">
+            <div id="masterSummary" class="total-summary-card" style="background:#fff3cd; border-color:var(--warning);"><b>စုစုပေါင်း Master ပို့ပြီးတန်ဖိုး: <span id="mTotal">0</span> ကျပ်</b></div>
+            <div id="masterHistoryListContainer"></div>
+        </div>
+
+        <div id="report-tab" class="input-tab-content">
+            <div class="btn-group" style="margin-bottom:15px;">
+                <button class="btn-warning" onclick="copyMasterSmart()">Copy Master (Smart Filter)</button>
+                <button class="btn-danger" onclick="clearMasterEntries()">ပို့ပြီးစာရင်းရှင်းမည်</button>
+            </div>
+            <div id="reportArea" style="display:grid; gap:10px;">
+                <div style="background:#e8f5e9; padding:10px;"><b>မိမိကျန်စာရင်း (Self)</b><div id="selfReportContent"></div></div>
+                <div style="background:#fff3cd; padding:10px;"><b>Master ပို့ရန် (Lay Off)</b><div id="masterReportContent"></div></div>
+            </div>
+        </div>
+
+        <div id="profit-tab" class="input-tab-content">
+            <input type="text" id="winningNumber" placeholder="ပေါက်ဂဏန်း" maxlength="3">
+            <button class="btn-success" onclick="calculateProfit()">တွက်ချက်မည်</button>
+            <div id="profitResultArea"></div>
+        </div>
+
+        <div id="settings-tab" class="input-tab-content">
+            <div style="background:#f9f9f9; padding:15px; border-radius:8px;">
+                <h4>⚙️ ကန့်သတ်ချက်များ</h4>
+                ကော်မရှင် %: <input type="number" id="commissionRate" value="10" oninput="recalc()">
+                ဒဲ့ Limit: <input type="number" id="limitDirect" value="1000" oninput="recalc()">
+                တွတ် Limit: <input type="number" id="limitRolled" value="500" oninput="recalc()">
+                ဒဲ့အဆ: <input type="number" id="payoutDirect" value="500" oninput="recalc()">
+                တွတ်အဆ: <input type="number" id="payoutRolled" value="100" oninput="recalc()">
+                <hr>
+                <button class="btn-info" onclick="exportData()">Backup သိမ်းမည်</button>
+                <input type="file" id="importFile" accept=".json" style="margin-top:10px;">
+                <button class="btn-warning" onclick="importData()">Restore ပြန်တင်မည်</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <h3>ဘောင်ချာပြင်ရန် / ဖျက်ရန်</h3>
+            <input type="hidden" id="editType"><input type="hidden" id="editId">
+            <textarea id="editTextarea"></textarea>
+            <div class="btn-group">
+                <button class="btn-success" onclick="updateVoucher()">သိမ်းမည်</button>
+                <button class="btn-danger" onclick="deleteVoucher()">ဖျက်မည်</button>
+                <button class="btn-info" onclick="closeModal()">ပိတ်မည်</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let vouchers = []; let masterHistory = [];
+        
+        // Called from Android when data is loaded
+        window.onDataLoaded = function(json) {
+            try {
+                const data = JSON.parse(json);
+                vouchers = data.vouchers || [];
+                masterHistory = data.masterHistory || [];
+                recalc();
+            } catch (e) {
+                console.error('Failed to parse loaded data', e);
+                // Fallback to localStorage
+                loadFromLocalStorage();
+            }
+        };
+        
+        function loadFromLocalStorage() {
+            const d = JSON.parse(localStorage.getItem('lottery_v5') || '{}'); 
+            vouchers = d.vouchers || []; 
+            masterHistory = d.masterHistory || [];
+            recalc();
+        }
+        
+        function saveToLocalStorage() {
+            localStorage.setItem('lottery_v5', JSON.stringify({ vouchers, masterHistory }));
+        }
+        
+        window.onload = () => { 
+            // Try load from Android first, fallback to localStorage after timeout
+            if (window.AndroidBridge) {
+                AndroidBridge.loadData();
+            } else {
+                loadFromLocalStorage();
+            }
+        };
+
+        function switchTab(t, el) {
+            document.querySelectorAll('.input-tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.input-tab').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(t + '-tab').classList.add('active'); el.classList.add('active');
+        }
+
+        function genPerms(n) {
+            let s = new Set(); let d = n.split('');
+            [[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]].forEach(p => s.add(p.map(i=>d[i]).join('')));
+            return [...s];
+        }
+        function getBase(n) { return n.split('').sort().join(''); }
+
+        function parseBatch(txt) {
+            let res = [];
+            let lines = txt.split('\n').filter(l => l.trim() !== "");
+            
+            for (let line of lines) {
+                let trimmed = line.trim();
+                if (!trimmed.includes('=')) throw `မှားယွင်းနေသော Format: "${trimmed}" (= မပါဝင်ပါ)`;
+                
+                let [nPart, vPart] = trimmed.split('=');
+                let nums = nPart.split('.').map(x=>x.trim());
+                
+                for(let n of nums) {
+                    if(n.length !== 3 || isNaN(n)) throw `မှားယွင်းနေသော ဂဏန်း: "${n}" (၃ လုံးဖြစ်ရပါမည်)`;
+                }
+
+                if (vPart.toLowerCase().startsWith('r')) {
+                    let rAmt = parseInt(vPart.replace(/r/i, '')) || 0;
+                    nums.forEach(n => {
+                        let perms = genPerms(n);
+                        perms.forEach(p => res.push({n: p, d: rAmt, r: 0, type: 'direct'}));
+                    });
+                } else if (vPart.toLowerCase().includes('r')) {
+                    let rParts = vPart.toLowerCase().split('r');
+                    let dAmt = parseInt(rParts[0]) || 0;
+                    let rAmt = parseInt(rParts[1]) || 0;
+                    nums.forEach(n => {
+                        let perms = genPerms(n);
+                        perms.forEach(p => res.push({n: p, d: (p === n ? dAmt : rAmt), r: 0, type: 'direct'}));
+                    });
+                } else {
+                    let vSplit = vPart.split('*');
+                    let d = parseInt(vSplit[0]) || 0;
+                    let r = vSplit[1] ? parseInt(vSplit[1]) : 0;
+                    nums.forEach(n => {
+                        if(d>0) res.push({n, d, r: 0, type: 'direct'});
+                        if(r>0) res.push({n: getBase(n), d: 0, r, type: 'rolled_group'});
+                    });
+                }
+            }
+            return res;
+        }
+
+        function processBatchInput() {
+            const input = document.getElementById('batchInput');
+            const errBox = document.getElementById('errorNotice');
+            errBox.style.display = 'none';
+            try {
+                const items = parseBatch(input.value);
+                if(!items.length) return;
+                vouchers.unshift({ id: Date.now(), time: new Date().toLocaleTimeString(), rawText: input.value, items, total: items.reduce((s,i)=>s+i.d+i.r,0) });
+                input.value = ''; recalc(); saveData();
+            } catch (e) {
+                errBox.innerText = "⚠️ " + e;
+                errBox.style.display = 'block';
+                input.focus();
+            }
+        }
+
+        function recalc() {
+            const limD = parseInt(document.getElementById('limitDirect').value) || 0;
+            const limR = parseInt(document.getElementById('limitRolled').value) || 0;
+            const pD = parseInt(document.getElementById('payoutDirect').value) || 0;
+            const pR = parseInt(document.getElementById('payoutRolled').value) || 0;
+            const comm = parseInt(document.getElementById('commissionRate').value) || 0;
+            const cleared = JSON.parse(localStorage.getItem('lottery_cleared') || '{}');
+            
+            let rawD = {}, rawR = {};
+            vouchers.forEach(v => v.items.forEach(i => { if(i.type==='direct') rawD[i.n] = (rawD[i.n]||0) + i.d; else rawR[i.n] = (rawR[i.n]||0) + i.r; }));
+            Object.keys(cleared).forEach(n => { if(rawD[n]) rawD[n] = Math.max(0, rawD[n] - (cleared[n].d||0)); if(rawR[n]) rawR[n] = Math.max(0, rawR[n] - (cleared[n].r||0)); });
+            
+            const allKeys = new Set([...Object.keys(rawD), ...Object.keys(rawR)]);
+            let gt = 0, selfTotal = 0, lotteryEntries = {}, selfEntries = {}, masterEntries = {};
+            
+            allKeys.forEach(n => {
+                let d = rawD[n]||0, r = rawR[n]||0; 
+                lotteryEntries[n] = {d, r}; gt += (d+r);
+                let sd = Math.min(d, limD); let md = d - sd;
+                let sr = Math.min(r, limR); let mr = r - sr;
+                if(sd>0 || sr>0) { selfEntries[n] = {d: sd, r: sr}; selfTotal += (sd+sr); }
+                if(md>0 || mr>0) masterEntries[n] = {d: md, r: mr};
+            });
+
+            window.currentMaster = masterEntries; window.currentSelf = selfEntries;
+            renderUI(lotteryEntries, selfEntries, masterEntries);
+            
+            let commAmt = selfTotal * (comm / 100);
+            let maxPay = (limD * pD) + (limR * pR);
+            let net = selfTotal - commAmt - maxPay;
+
+            document.getElementById('liveSelfTotal').innerText = selfTotal.toLocaleString();
+            document.getElementById('liveComm').innerText = commAmt.toLocaleString();
+            document.getElementById('liveMaxPay').innerText = maxPay.toLocaleString();
+            document.getElementById('liveNet').innerText = net.toLocaleString();
+            document.getElementById('liveNet').style.color = net >= 0 ? 'green' : 'red';
+        }
+
+        function renderUI(all, self, master) {
+            const tbody = document.querySelector('#lotteryTable tbody');
+            tbody.innerHTML = Object.keys(all).sort().map(n => {
+                let e = all[n]; if(e.d+e.r === 0) return '';
+                return `<tr><td class="text-center"><b>${n}</b></td><td>${e.d||'-'}</td><td>${e.r||'-'}</td><td>${(e.d+e.r).toLocaleString()}</td></tr>`;
+            }).join('');
+
+            let vSum = 0;
+            document.getElementById('voucherListContainer').innerHTML = vouchers.map(v => {
+                vSum += v.total;
+                return `<div class="voucher-card"><div><b>${v.time}</b><br>ကျပ်: ${v.total.toLocaleString()}</div><button class="btn-info" style="width:auto" onclick="openEditModal('vouchers', ${v.id})">ပြင်/ဖျက်</button></div>`;
+            }).join('');
+            document.getElementById('vTotal').innerText = vSum.toLocaleString();
+
+            let mSum = 0;
+            document.getElementById('masterHistoryListContainer').innerHTML = masterHistory.map(m => {
+                mSum += m.total;
+                return `<div class="voucher-card master-card"><div><b>${m.time}</b><br>ကျပ်: ${m.total.toLocaleString()}</div><button class="btn-info" style="width:auto" onclick="openEditModal('master', ${m.id})">ပြင်/ဖျက်</button></div>`;
+            }).join('');
+            document.getElementById('mTotal').innerText = mSum.toLocaleString();
+
+            const reportHtml = (data) => `<table><tr><th>ဂဏန်း</th><th>ဒဲ့</th><th>တွတ်</th></tr>${Object.keys(data).sort().map(n => `<tr><td>${n}</td><td>${data[n].d||'-'}</td><td>${data[n].r||'-'}</td></tr>`).join('')}</table>`;
+            document.getElementById('selfReportContent').innerHTML = reportHtml(self);
+            document.getElementById('masterReportContent').innerHTML = reportHtml(master);
+        }
+
+        function openEditModal(type, id) {
+            document.getElementById('editType').value = type; document.getElementById('editId').value = id;
+            let data = (type === 'vouchers') ? vouchers.find(x=>x.id===id) : masterHistory.find(x=>x.id===id);
+            document.getElementById('editTextarea').value = (type === 'vouchers') ? data.rawText : Object.keys(data.items).map(n => `${n}=${data.items[n].d||0}${data.items[n].r>0?'*'+data.items[n].r:''}`).join('\n');
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        function updateVoucher() {
+            const type = document.getElementById('editType').value; const id = parseInt(document.getElementById('editId').value);
+            const newText = document.getElementById('editTextarea').value; 
+            try {
+                const newItems = parseBatch(newText);
+                if(type === 'vouchers') {
+                    let idx = vouchers.findIndex(x=>x.id===id); vouchers[idx].rawText = newText; vouchers[idx].items = newItems; vouchers[idx].total = newItems.reduce((s,i)=>s+i.d+i.r,0);
+                } else { alert("Master မှတ်တမ်းကို ဖျက်ပြီးမှသာ ပြန်ပို့ပါ။"); return; }
+                recalc(); saveData(); closeModal();
+            } catch (e) { alert("အမှားပါနေပါသည်: " + e); }
+        }
+
+        function deleteVoucher() {
+            if(!confirm("ဖျက်မှာ သေချာပါသလား?")) return;
+            const type = document.getElementById('editType').value; const id = parseInt(document.getElementById('editId').value);
+            if(type === 'vouchers') { vouchers = vouchers.filter(x=>x.id!==id); }
+            else {
+                let m = masterHistory.find(x=>x.id===id); let cleared = JSON.parse(localStorage.getItem('lottery_cleared') || '{}');
+                Object.keys(m.items).forEach(n => { if(cleared[n]) { cleared[n].d -= m.items[n].d; cleared[n].r -= m.items[n].r; } });
+                localStorage.setItem('lottery_cleared', JSON.stringify(cleared)); masterHistory = masterHistory.filter(x=>x.id!==id);
+            }
+            recalc(); saveData(); closeModal();
+        }
+
+        function calculateProfit() {
+            const win = document.getElementById('winningNumber').value.trim(); if(win.length !== 3) return alert("ပေါက်ဂဏန်းထည့်ပါ");
+            const pD = parseInt(document.getElementById('payoutDirect').value); const pR = parseInt(document.getElementById('payoutRolled').value); const comm = parseInt(document.getElementById('commissionRate').value);
+            const getBox = (entries, title) => {
+                let sale = 0; Object.values(entries).forEach(e => sale += (e.d+e.r));
+                let commAmt = sale * (comm / 100); let winD = entries[win] ? entries[win].d : 0;
+                let winR = entries[getBase(win)] ? entries[getBase(win)].r : 0;
+                let payAmt = (winD * pD) + (winR * pR); let net = sale - commAmt - payAmt;
+                return `<div style="border:1px solid #ccc; padding:10px; margin-top:10px; border-radius:5px;"><b>${title}</b><br>ရောင်းရငွေ: ${sale.toLocaleString()}<br>ကော်မရှင်: -${commAmt.toLocaleString()}<br>လျော်ကြေး: -${payAmt.toLocaleString()}<br><b>အသားတင်: ${net.toLocaleString()}</b></div>`;
+            };
+            let masterTotal = {}; masterHistory.forEach(h => Object.keys(h.items).forEach(n => { if(!masterTotal[n]) masterTotal[n] = {d:0,r:0}; masterTotal[n].d += h.items[n].d; masterTotal[n].r += h.items[n].r; }));
+            document.getElementById('profitResultArea').innerHTML = getBox(window.currentSelf, "🙋‍♂️ မိမိကျန်စာရင်း") + getBox(masterTotal, "🏢 မာစတာသို့ပို့ပြီးစာရင်း");
+        }
+
+        function copyMasterSmart() {
+            let entries = window.currentMaster; let finalLines = []; let total = 0; let groups = {};
+            Object.keys(entries).forEach(n => {
+                let base = getBase(n); if(!groups[base]) groups[base] = { d: {}, r: 0 };
+                if(entries[n].d > 0) groups[base].d[n] = entries[n].d;
+                if(entries[n].r > 0) groups[base].r += entries[n].r;
+                total += (entries[n].d + entries[n].r);
+            });
+            Object.keys(groups).sort().forEach(base => {
+                let g = groups[base]; let dKeys = Object.keys(g.d);
+                if (dKeys.length > 0) { dKeys.sort().forEach((num, idx) => { let line = num + "=" + g.d[num]; if (idx === 0 && g.r > 0) line += "*" + g.r; finalLines.push(line); }); }
+                else if (g.r > 0) finalLines.push(base + "=0*" + g.r);
+            });
+            let text = finalLines.join('\n') + `\nTotal: ${total}`;
+            const el = document.createElement('textarea'); el.value = text; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); alert("Copy ကူးပြီးပါပြီ။");
+        }
+
+        function clearMasterEntries() {
+            if(!confirm("ပို့�န်စာရင်းများကို ရှင်းလင်းမည်လား?")) return;
+            let entries = window.currentMaster; let total = 0; Object.values(entries).forEach(e => total += (e.d+e.r));
+            if(total===0) return;
+            masterHistory.unshift({ id: Date.now(), time: new Date().toLocaleString(), items: JSON.parse(JSON.stringify(entries)), total });
+            let cleared = JSON.parse(localStorage.getItem('lottery_cleared') || '{}');
+            Object.keys(entries).forEach(n => { if(!cleared[n]) cleared[n] = {d:0, r:0}; cleared[n].d += entries[n].d; cleared[n].r += entries[n].r; });
+            localStorage.setItem('lottery_cleared', JSON.stringify(cleared)); recalc(); saveData();
+        }
+
+        function closeModal() { document.getElementById('editModal').classList.remove('active'); }
+        
+        function saveData() {
+            const data = JSON.stringify({ vouchers, masterHistory });
+            if (window.AndroidBridge) {
+                AndroidBridge.saveVouchers(data);
+            } else {
+                localStorage.setItem('lottery_v5', data);
+            }
+        }
+        
+        function clearAll() {
+            if(confirm("အားလုံးဖျက်မည်လား?")) {
+                if (window.AndroidBridge) {
+                    AndroidBridge.clearAll();
+                }
+                localStorage.clear();
+                location.reload();
+            }
+        }
+        
+        function exportData() {
+            let d = { vouchers, masterHistory, cleared: localStorage.getItem('lottery_cleared') };
+            let blob = new Blob([JSON.stringify(d)], {type:'application/json'});
+            let a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `backup_v54.json`;
+            a.click();
+        }
+        
+        function importData() {
+            const f = document.getElementById('importFile').files[0];
+            if(!f) return;
+            const r = new FileReader();
+            r.onload = (e) => {
+                try {
+                    const d = JSON.parse(e.target.result);
+                    vouchers = d.vouchers || d.data || []; 
+                    masterHistory = d.masterHistory || [];
+                    localStorage.setItem('lottery_cleared', d.cleared || '{}');
+                    recalc(); saveData();
+                    alert("Data များအောင်မြင်စွာ Restore လုပ်ပြီးပါပြီ။");
+                } catch (err) {
+                    alert("Backup ဖိုင်ဖတ်ရာတွင် အမှားအယွင်းရှိနေပါသည် (Format မမှန်ပါ)။");
+                }
+            };
+            r.readAsText(f);
+        }
+    </script>
+</body>
+</html>
