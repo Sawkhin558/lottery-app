@@ -41,6 +41,13 @@ data class JsData(
     val masterHistory: List<JsMaster>
 )
 
+// Import Room entities
+import com.example.lotteryapp.data.LotteryDatabase
+import com.example.lotteryapp.data.Voucher
+import com.example.lotteryapp.data.LotteryItem
+import com.example.lotteryapp.data.MasterHistory
+import com.example.lotteryapp.data.MasterItem
+
 class MainActivity : AppCompatActivity() {
     
     private lateinit var webView: WebView
