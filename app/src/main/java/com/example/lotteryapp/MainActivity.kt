@@ -17,7 +17,6 @@ import java.util.*
 class MainActivity : AppCompatActivity() {
     
     private lateinit var webView: WebView
-    private val db by lazy { LotteryDatabase.getDatabase(this) }
     private val gson = Gson()
     private val dateFormat by lazy { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     
@@ -38,11 +37,15 @@ class MainActivity : AppCompatActivity() {
     
     inner class AndroidBridge {
         
+        private val database: LotteryDatabase
+            get() = LotteryDatabase.getDatabase(applicationContext)
+        
         @JavascriptInterface
         fun loadData() {
-            // Called from JS to load all data from database
             CoroutineScope(Dispatchers.IO).launch {
                 try {
+                    val db = database
+                    
                     // Load vouchers with items
                     val voucherList = db.voucherDao().getAllVouchersSync()
                     val allVoucherItems = db.lotteryItemDao().getAllItemsSync()
@@ -103,20 +106,21 @@ class MainActivity : AppCompatActivity() {
         fun saveVouchers(json: String) {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val data = gson.fromJson(json, Map::class.java)
+                    val data = gson.fromJson<Map<String, Any>>(json, Map::class.java)
+                    val db = database
                     
-                    // Clear existing vouchers and items
+                    // Clear existing data
                     db.voucherDao().deleteAllVouchers()
                     db.lotteryItemDao().deleteAllItems()
                     db.masterHistoryDao().deleteAll()
                     db.masterHistoryDao().deleteAllItems()
                     
                     // Save vouchers
-                    val vouchersList = data["vouchers"] as? List<Map<String, Any>> ?: emptyList()
+                    val vouchersList = (data["vouchers"] as? List<Map<String, Any>>) ?: emptyList()
                     vouchersList.forEach { vMap ->
                         val voucher = Voucher(
                             id = (vMap["id"] as? Number ?: 0).toLong(),
-                            timestamp = System.currentTimeMillis(), // We don't store original timestamp from web, use now or parse?
+                            timestamp = System.currentTimeMillis(),
                             rawText = vMap["rawText"] as? String ?: "",
                             totalAmount = (vMap["total"] as? Number ?: 0).toInt()
                         )
@@ -136,7 +140,7 @@ class MainActivity : AppCompatActivity() {
                     }
                     
                     // Save master history
-                    val masterList = data["masterHistory"] as? List<Map<String, Any>> ?: emptyList()
+                    val masterList = (data["masterHistory"] as? List<Map<String, Any>>) ?: emptyList()
                     masterList.forEach { mMap ->
                         val master = MasterHistory(
                             id = (mMap["id"] as? Number ?: 0).toLong(),
@@ -166,6 +170,7 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun clearAll() {
             CoroutineScope(Dispatchers.IO).launch {
+                val db = database
                 db.voucherDao().deleteAllVouchers()
                 db.lotteryItemDao().deleteAllItems()
                 db.masterHistoryDao().deleteAll()
