@@ -13,12 +13,33 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
-// Data class imports
-import com.example.lotteryapp.data.LotteryDatabase
-import com.example.lotteryapp.data.Voucher
-import com.example.lotteryapp.data.LotteryItem
-import com.example.lotteryapp.data.MasterHistory
-import com.example.lotteryapp.data.MasterItem
+// Data classes for JSON serialization
+data class JsVoucher(
+    val id: Long,
+    val time: String,
+    val rawText: String,
+    val items: List<JsItem>,
+    val total: Int
+)
+
+data class JsItem(
+    val n: String,
+    val d: Int,
+    val r: Int,
+    val type: String
+)
+
+data class JsMaster(
+    val id: Long,
+    val time: String,
+    val items: List<JsItem>,
+    val total: Int
+)
+
+data class JsData(
+    val vouchers: List<JsVoucher>,
+    val masterHistory: List<JsMaster>
+)
 
 class MainActivity : AppCompatActivity() {
     
@@ -56,20 +77,15 @@ class MainActivity : AppCompatActivity() {
                     val voucherList = db.voucherDao().getAllVouchersSync()
                     val allVoucherItems = db.lotteryItemDao().getAllItemsSync()
                     val vouchersJson = voucherList.map { v ->
-                        val items = allVoucherItems.filter { it.voucherId == v.id }.map { i ->
-                            mapOf(
-                                "n" to i.number,
-                                "d" to i.directAmount,
-                                "r" to i.rolledAmount,
-                                "type" to i.type
-                            )
-                        }
-                        mapOf(
-                            "id" to v.id,
-                            "time" to dateFormat.format(Date(v.timestamp)),
-                            "rawText" to v.rawText,
-                            "items" to items,
-                            "total" to v.totalAmount
+                        val items = allVoucherItems
+                            .filter { it.voucherId == v.id }
+                            .map { i -> JsItem(i.number, i.directAmount, i.rolledAmount, i.type) }
+                        JsVoucher(
+                            id = v.id,
+                            time = dateFormat.format(Date(v.timestamp)),
+                            rawText = v.rawText,
+                            items = items,
+                            total = v.totalAmount
                         )
                     }
                     
@@ -77,27 +93,20 @@ class MainActivity : AppCompatActivity() {
                     val masterList = db.masterHistoryDao().getAllSync()
                     val allMasterItems = db.masterHistoryDao().getAllItemsSync()
                     val masterJson = masterList.map { m ->
-                        val items = allMasterItems.filter { it.masterId == m.id }.map { i ->
-                            mapOf(
-                                "n" to i.number,
-                                "d" to i.directAmount,
-                                "r" to i.rolledAmount
-                            )
-                        }
-                        mapOf(
-                            "id" to m.id,
-                            "time" to m.time,
-                            "items" to items,
-                            "total" to m.total
+                        val items = allMasterItems
+                            .filter { it.masterId == m.id }
+                            .map { i -> JsItem(i.number, i.directAmount, i.rolledAmount) }
+                        JsMaster(
+                            id = m.id,
+                            time = m.time,
+                            items = items,
+                            total = m.total
                         )
                     }
                     
-                    val result = mapOf(
-                        "vouchers" to vouchersJson,
-                        "masterHistory" to masterJson
-                    )
-                    
+                    val result = JsData(vouchersJson, masterJson)
                     val json = gson.toJson(result)
+                    
                     runOnUiThread {
                         webView.evaluateJavascript("window.onDataLoaded('${json.replace("'", "\\'")}')") {}
                     }
@@ -112,7 +121,7 @@ class MainActivity : AppCompatActivity() {
         fun saveVouchers(json: String) {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val data = gson.fromJson<Map<String, Any>>(json, Map::class.java)
+                    val data = gson.fromJson(json, JsData::class.java)
                     val db = database
                     
                     // Clear existing data
@@ -122,46 +131,42 @@ class MainActivity : AppCompatActivity() {
                     db.masterHistoryDao().deleteAllItems()
                     
                     // Save vouchers
-                    val vouchersList = (data["vouchers"] as? List<Map<String, Any>>) ?: emptyList()
-                    vouchersList.forEach { vMap ->
+                    data.vouchers.forEach { v ->
                         val voucher = Voucher(
-                            id = (vMap["id"] as? Number ?: 0).toLong(),
+                            id = v.id,
                             timestamp = System.currentTimeMillis(),
-                            rawText = vMap["rawText"] as? String ?: "",
-                            totalAmount = (vMap["total"] as? Number ?: 0).toInt()
+                            rawText = v.rawText,
+                            totalAmount = v.total
                         )
                         val voucherId = db.voucherDao().insertVoucher(voucher).toInt()
                         
-                        val itemsList = vMap["items"] as? List<Map<String, Any>> ?: emptyList()
-                        itemsList.forEach { iMap ->
+                        v.items.forEach { i ->
                             val item = LotteryItem(
                                 voucherId = voucherId,
-                                number = iMap["n"] as? String ?: "",
-                                directAmount = (iMap["d"] as? Number ?: 0).toInt(),
-                                rolledAmount = (iMap["r"] as? Number ?: 0).toInt(),
-                                type = iMap["type"] as? String ?: "direct"
+                                number = i.n,
+                                directAmount = i.d,
+                                rolledAmount = i.r,
+                                type = i.type
                             )
                             db.lotteryItemDao().insertItem(item)
                         }
                     }
                     
                     // Save master history
-                    val masterList = (data["masterHistory"] as? List<Map<String, Any>>) ?: emptyList()
-                    masterList.forEach { mMap ->
+                    data.masterHistory.forEach { m ->
                         val master = MasterHistory(
-                            id = (mMap["id"] as? Number ?: 0).toLong(),
-                            time = mMap["time"] as? String ?: "",
-                            total = (mMap["total"] as? Number ?: 0).toInt()
+                            id = m.id,
+                            time = m.time,
+                            total = m.total
                         )
                         val masterId = db.masterHistoryDao().insert(master).toInt()
                         
-                        val itemsList = mMap["items"] as? List<Map<String, Any>> ?: emptyList()
-                        itemsList.forEach { iMap ->
+                        m.items.forEach { i ->
                             val item = MasterItem(
                                 masterId = masterId,
-                                number = iMap["n"] as? String ?: "",
-                                directAmount = (iMap["d"] as? Number ?: 0).toInt(),
-                                rolledAmount = (iMap["r"] as? Number ?: 0).toInt()
+                                number = i.n,
+                                directAmount = i.d,
+                                rolledAmount = i.r
                             )
                             db.masterHistoryDao().insertItem(item)
                         }
