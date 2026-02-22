@@ -88,7 +88,7 @@ class MainActivity : AppCompatActivity() {
                             .filter { it.voucherId == v.id }
                             .map { i -> JsItem(i.number, i.directAmount, i.rolledAmount, i.type) }
                         JsVoucher(
-                            id = v.id,
+                            id = v.id.toLong(),
                             time = dateFormat.format(Date(v.timestamp)),
                             rawText = v.rawText,
                             items = items,
@@ -102,9 +102,9 @@ class MainActivity : AppCompatActivity() {
                     val masterJson = masterList.map { m ->
                         val items = allMasterItems
                             .filter { it.masterId == m.id }
-                            .map { i -> JsItem(i.number, i.directAmount, i.rolledAmount) }
+                            .map { i -> JsItem(i.number, i.directAmount, i.rolledAmount, "") }
                         JsMaster(
-                            id = m.id,
+                            id = m.id.toLong(),
                             time = m.time,
                             items = items,
                             total = m.total
@@ -137,10 +137,10 @@ class MainActivity : AppCompatActivity() {
                     db.masterHistoryDao().deleteAll()
                     db.masterHistoryDao().deleteAllItems()
                     
-                    // Save vouchers
+                    // Save vouchers (let Room generate IDs)
                     data.vouchers.forEach { v ->
                         val voucher = Voucher(
-                            id = v.id,
+                            id = 0, // auto-generate
                             timestamp = System.currentTimeMillis(),
                             rawText = v.rawText,
                             totalAmount = v.total
@@ -159,10 +159,10 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                     
-                    // Save master history
+                    // Save master history (let Room generate IDs)
                     data.masterHistory.forEach { m ->
                         val master = MasterHistory(
-                            id = m.id,
+                            id = 0, // auto-generate
                             time = m.time,
                             total = m.total
                         )
