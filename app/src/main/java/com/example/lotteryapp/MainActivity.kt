@@ -33,7 +33,7 @@ data class JsItem(
     val n: String,
     val d: Int,
     val r: Int,
-    val type: String
+    val type: String = ""
 )
 
 data class JsMaster(

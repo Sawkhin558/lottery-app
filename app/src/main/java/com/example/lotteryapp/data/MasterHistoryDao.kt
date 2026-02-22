@@ -16,7 +16,7 @@ interface MasterHistoryDao {
     suspend fun getById(id: Int): MasterHistory?
     
     @Insert
-    suspend fun insert(master: MasterHistory): Int
+    suspend fun insert(master: MasterHistory): Long
     
     @Update
     suspend fun update(master: MasterHistory)
