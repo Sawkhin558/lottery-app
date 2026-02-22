@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
@@ -13,6 +12,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+
+// Data class imports
+import com.example.lotteryapp.data.LotteryDatabase
+import com.example.lotteryapp.data.Voucher
+import com.example.lotteryapp.data.LotteryItem
+import com.example.lotteryapp.data.MasterHistory
+import com.example.lotteryapp.data.MasterItem
 
 class MainActivity : AppCompatActivity() {
     
