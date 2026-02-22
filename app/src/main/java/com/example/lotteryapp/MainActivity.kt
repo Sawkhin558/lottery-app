@@ -13,6 +13,13 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
+// Room entity imports
+import com.example.lotteryapp.data.LotteryDatabase
+import com.example.lotteryapp.data.Voucher
+import com.example.lotteryapp.data.LotteryItem
+import com.example.lotteryapp.data.MasterHistory
+import com.example.lotteryapp.data.MasterItem
+
 // Data classes for JSON serialization
 data class JsVoucher(
     val id: Long,
@@ -40,13 +47,6 @@ data class JsData(
     val vouchers: List<JsVoucher>,
     val masterHistory: List<JsMaster>
 )
-
-// Import Room entities
-import com.example.lotteryapp.data.LotteryDatabase
-import com.example.lotteryapp.data.Voucher
-import com.example.lotteryapp.data.LotteryItem
-import com.example.lotteryapp.data.MasterHistory
-import com.example.lotteryapp.data.MasterItem
 
 class MainActivity : AppCompatActivity() {
     
